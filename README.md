@@ -77,6 +77,21 @@ A shot list looks like this:
 }
 ```
 
+### Title card, end card, file size
+
+Every video opens on a short title card (the page title and the running time) and closes on an end
+card: "Read the full page", the page's link, and a small "made with page-walkthrough" line. In the
+shot list, `"title"` and `"link"` override what is shown (set `"link"` to the public URL when you
+render a local file), and `"intro": false`, `"outro": false` or `"credit": false` turn parts off.
+
+`--speed 1.25` (or `"speed": 1.25`) makes the voice itself talk faster, with natural pitch; the camera
+and captions follow because they are timed from the audio. Useful for readers who would otherwise
+watch at 1.5x.
+
+`render --share` (or `"quality": "share"`) encodes for chat apps at about half the size of the
+default, with no visible loss on text. Audio is loudness-normalised in both modes, so every voice
+comes out at the same level.
+
 ## Voices
 
 It picks the first one available, in this order, or you choose with `"tts"` in the shot list or `--tts`:

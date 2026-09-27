@@ -268,13 +268,94 @@ def preview(folder):
     return out
 
 
-def render(folder, out=None, log=print):
+INTRO_S = 2.2
+OUTRO_S = 3.2
+FADE_S = 0.45
+CREDIT = "made with page-walkthrough  ·  github.com/karanb192/page-walkthrough"
+ENCODE = {
+    "hq": ["-preset", "medium", "-crf", "22"],
+    "share": ["-preset", "slow", "-crf", "27", "-tune", "stillimage"],
+}
+
+
+def page_title(job, meta):
+    if job.get("title"):
+        return job["title"]
+    t = (meta.get("title") or "").strip()
+    for sep in (" - ", " | "):
+        head, _, tail = t.rpartition(sep)
+        if head and len(head) >= 20 and len(tail) <= 40:
+            t = head
+    return t or "Walkthrough"
+
+
+def page_link(job, meta):
+    if job.get("link"):
+        return job["link"]
+    url = meta.get("url") or ""
+    if url.startswith(("http://", "https://")):
+        return re.sub(r"^https?://(www\.)?", "", url.split("#")[0]).rstrip("/")
+    return Path(url.split("#")[0]).name
+
+
+def _backdrop(frame, size):
+    from PIL import ImageFilter
+    bg = frame.resize(size, Image.Resampling.BICUBIC).filter(ImageFilter.GaussianBlur(22))
+    return Image.blend(bg, Image.new("RGB", size, (12, 12, 16)), 0.72)
+
+
+def _centered(dr, lines, fnt, y, W, fill, gap=1.22):
+    size = fnt.size
+    for ln in lines:
+        tw = dr.textlength(ln, font=fnt)
+        dr.text(((W - tw) / 2, y), ln, font=fnt, fill=fill)
+        y += int(size * gap)
+    return y
+
+
+def title_card(first, W, H, title, kicker):
+    card = _backdrop(first, (W, H))
+    dr = ImageDraw.Draw(card)
+    big = font(int(W * (0.075 if H > W else 0.05)))
+    small = font(int(W * (0.03 if H > W else 0.02)))
+    lines = wrap(dr, title, big, W - 160)[:5]
+    block = len(lines) * int(big.size * 1.22) + small.size * 3
+    y = (H - block) // 2
+    dr.rectangle(((W - 90) // 2, y - 50, (W + 90) // 2, y - 42), fill=(99, 102, 241))
+    y = _centered(dr, lines, big, y, W, (255, 255, 255))
+    _centered(dr, [kicker], small, y + small.size, W, (199, 210, 254))
+    return card
+
+
+def end_card(last, W, H, link, credit):
+    card = _backdrop(last, (W, H))
+    dr = ImageDraw.Draw(card)
+    mid = font(int(W * (0.055 if H > W else 0.038)))
+    small = font(int(W * (0.026 if H > W else 0.017)))
+    y = H // 2 - mid.size * 2
+    y = _centered(dr, ["Read the full page"], mid, y, W, (255, 255, 255))
+    if link:
+        y = _centered(dr, wrap(dr, link, small, W - 140), small, y + small.size, W, (199, 210, 254))
+    if credit:
+        _centered(dr, [CREDIT], font(int(small.size * 0.8)), H - int(H * 0.06), W, (140, 140, 150))
+    return card
+
+
+def render(folder, out=None, log=print, quality=None, speed=None):
     d, meta, boxes, job = load_job(folder)
+    if speed:
+        job["speed"] = speed
     fmt, (W, H, band, view), plan = build_plan(d, meta, boxes, job, with_audio=True)
     page = Image.open(d / "page.png").convert("RGB")
     bgc = parse_bg(meta.get("bg"))
     scale = meta["scale"]
-    total = sum(p["dur"] for p in plan) + TAIL_S
+    quality = quality or job.get("quality", "hq")
+    intro = INTRO_S if job.get("intro", True) else 0.0
+    outro = OUTRO_S if job.get("outro", True) else TAIL_S
+    for p in plan:
+        p["t"] += intro
+    speech_end = plan[-1]["t"] + plan[-1]["dur"]
+    total = speech_end + outro
     nframes = int(total * FPS)
     fsize = {"portrait": 54, "landscape": 44, "square": 46}[fmt]
     capf = font(fsize)
@@ -286,20 +367,13 @@ def render(folder, out=None, log=print):
     listfile.write_text("".join(f"file 'shot{p['i']:02d}.wav'\n" for p in plan))
     audio = d / "audio" / "all.wav"
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(listfile),
-                    "-af", f"apad=pad_dur={TAIL_S}", str(audio)], check=True)
+                    "-af", f"adelay={int(intro * 1000)}:all=1,apad=pad_dur={outro},loudnorm=I=-16:TP=-1.5:LRA=11",
+                    "-ar", "48000", str(audio)], check=True)
 
-    out = Path(out) if out else d / "walkthrough.mp4"
-    ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
-                           "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-i", str(audio),
-                           "-c:v", "libx264", "-preset", "medium", "-crf", "22", "-pix_fmt", "yuv420p",
-                           "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", str(out)],
-                          stdin=subprocess.PIPE)
-    canvas = Image.new("RGB", (W, H), bgc)
-    for n in range(nframes):
-        t = n / FPS
-        k = max(i for i, p in enumerate(plan) if p["t"] <= t)
+    def view_frame(t):
+        k = max(i for i, p in enumerate(plan) if p["t"] <= t) if t >= plan[0]["t"] else 0
         p = plan[k]
-        local = t - p["t"]
+        local = max(0.0, t - p["t"])
         rect, spot = p["rect"], p["spot"]
         if k > 0 and local < MOVE_S:
             e = ease(local / MOVE_S)
@@ -310,14 +384,17 @@ def render(folder, out=None, log=print):
             span = max(0.01, p["dur"] - (MOVE_S if k > 0 else 0))
             u = min(1.0, (local - (MOVE_S if k > 0 else 0)) / span)
             win = lerp_win(p["start"], p["end"], ease(u))
-        canvas.paste(bgc, (0, 0, W, H))
         fr = frame_at(page, scale, win, view)
         if spot:
             fr = spotlight(fr, win, rect, view, 0.42)
+        return fr, p
+
+    def shot_frame(t):
+        fr, p = view_frame(t)
+        canvas = Image.new("RGB", (W, H), bgc)
         canvas.paste(fr, (0, 0))
         dr = ImageDraw.Draw(canvas)
         dr.rectangle((0, H - band, W, H), fill=(17, 17, 17))
-        dr.rectangle((0, H - band, int(W * min(1, t / total)), H - band + 6), fill=(99, 102, 241))
         cap = next((c for c in p["caps"] if c[0] <= t < c[1]), None)
         if cap:
             lines = wrap(dr, cap[2], capf, W - 120)
@@ -326,13 +403,42 @@ def render(folder, out=None, log=print):
             for j, ln in enumerate(lines):
                 tw = dr.textlength(ln, font=capf)
                 dr.text(((W - tw) / 2, y0 + j * lh), ln, font=capf, fill=(255, 255, 255))
-        ff.stdin.write(canvas.tobytes())
+        return canvas
+
+    mins, secs = divmod(round(total), 60)
+    first_card = last_card = None
+    if intro:
+        first_card = title_card(view_frame(plan[0]["t"])[0], W, H, page_title(job, meta),
+                                f"WALKTHROUGH  ·  {mins}:{secs:02d}")
+    if job.get("outro", True):
+        last_card = end_card(view_frame(speech_end - 0.05)[0], W, H, page_link(job, meta), job.get("credit", True))
+
+    out = Path(out) if out else d / "walkthrough.mp4"
+    ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
+                           "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-i", str(audio),
+                           "-c:v", "libx264", *ENCODE[quality], "-pix_fmt", "yuv420p",
+                           "-c:a", "aac", "-b:a", "128k" if quality == "hq" else "96k",
+                           "-shortest", "-movflags", "+faststart", str(out)],
+                          stdin=subprocess.PIPE)
+    for n in range(nframes):
+        t = n / FPS
+        if first_card is not None and t < intro:
+            frame = first_card
+            if t > intro - FADE_S:
+                frame = Image.blend(first_card, shot_frame(intro), (t - (intro - FADE_S)) / FADE_S)
+        elif last_card is not None and t >= speech_end:
+            a = min(1.0, (t - speech_end) / FADE_S)
+            frame = last_card if a >= 1 else Image.blend(shot_frame(speech_end - 0.05), last_card, a)
+        else:
+            frame = shot_frame(t)
+            ImageDraw.Draw(frame).rectangle((0, H - band, int(W * min(1, t / total)), H - band + 6),
+                                            fill=(99, 102, 241))
+        ff.stdin.write(frame.tobytes())
         if n % (FPS * 10) == 0:
             log(f"  {t:5.1f}s / {total:.1f}s")
     ff.stdin.close()
     if ff.wait() != 0:
         sys.exit("ffmpeg failed")
-    log(f"{out}  ({total:.1f}s, {W}x{H}, {len(plan)} shots)")
+    size = out.stat().st_size / 1e6
+    log(f"{out}  ({total:.1f}s, {W}x{H}, {len(plan)} shots, {size:.1f} MB)")
     return out
-
-

@@ -64,7 +64,12 @@ Use a fresh work folder per video, e.g. `./walkthrough-work/<name>`.
    - `spotlight` (default on) dims everything outside the framed region and outlines it, so the
      viewer knows what the voice is talking about. Set `false` per shot or at the top level.
    - `tts`: `auto`, `cartesia`, `elevenlabs`, `openai`, `kokoro` or `say`. With a named backend you may also set
-     `voice`, `model` (cloud), `instructions` (OpenAI), `speed` (Kokoro) or `rate` (say).
+     `voice`, `model` (cloud), `instructions` (OpenAI) or `rate` (say).
+
+   - `speed`: voice pace for every backend, e.g. 1.25. Use it when the user wants a faster watch.
+   - `title` / `link`: what the opening and closing cards show. Defaults are the page title and its
+     URL; for a local file, ask the user for the public URL and set `link` to it. `intro`, `outro`
+     and `credit` set to `false` turn those parts off.
 
    If the user has no agent handy, `page-walkthrough plan DIR --seconds 90` asks Claude to write this
    file (needs `pip install "page-walkthrough[plan]"` and `ANTHROPIC_API_KEY`).
@@ -73,7 +78,8 @@ Use a fresh work folder per video, e.g. `./walkthrough-work/<name>`.
    spotlighted frame per shot, and prints the expected length. Look at it. Each shot must frame what
    its narration talks about, with no key text cut at the edge. Fix `shots.json` and preview again.
 
-5. **Render.** `page-walkthrough render DIR --out NAME.mp4`. It voices each shot, moves the camera
+5. **Render.** `page-walkthrough render DIR --out NAME.mp4` (add `--share` when the video is going to
+   WhatsApp, Slack or similar: about half the size). It voices each shot, moves the camera
    with eased travel between shots, draws captions (synced to the voice's word timings when the
    backend gives them), adds a progress line, and encodes H.264 + AAC at 30 fps. Expect roughly
    real-time rendering: a 90-second video takes about 90 seconds on a laptop.

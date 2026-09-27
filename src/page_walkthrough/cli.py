@@ -37,7 +37,7 @@ def cmd_preview(a):
 
 def cmd_render(a):
     from .render import render
-    render(a.dir, a.out)
+    render(a.dir, a.out, quality="share" if a.share else None, speed=a.speed)
 
 
 def cmd_make(a):
@@ -51,7 +51,7 @@ def cmd_make(a):
                                             ensure_ascii=False))
     preview(folder)
     out = Path(a.out) if a.out else Path.cwd() / (Path(a.page).stem + "-walkthrough.mp4")
-    render(folder, out)
+    render(folder, out, quality="share" if a.share else None, speed=a.speed)
     if not a.keep:
         shutil.rmtree(folder, ignore_errors=True)
 
@@ -125,12 +125,16 @@ def main(argv=None):
     p = sub.add_parser("render", help="voice, camera and captions into an MP4")
     p.add_argument("dir")
     p.add_argument("--out")
+    p.add_argument("--share", action="store_true", help="smaller file for chat apps (about half the size)")
+    p.add_argument("--speed", type=float, help="voice pace, e.g. 1.25 or 1.5 (default 1.0)")
     p.set_defaults(fn=cmd_render)
 
     p = sub.add_parser("make", help="capture, plan, preview and render in one go")
     p.add_argument("page")
     p.add_argument("--out", help="output .mp4 (default: <page>-walkthrough.mp4)")
     p.add_argument("--keep", help="keep the work folder here")
+    p.add_argument("--share", action="store_true", help="smaller file for chat apps (about half the size)")
+    p.add_argument("--speed", type=float, help="voice pace, e.g. 1.25 or 1.5 (default 1.0)")
     capture_args(p)
     plan_args(p)
     p.set_defaults(fn=cmd_make)

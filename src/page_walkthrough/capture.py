@@ -297,7 +297,8 @@ def capture_pdf(path, out, scale):
             boxes.append({"tag": "region", "cls": f"page {i + 1}", "depth": depth, "text": bt[:140],
                           "rect": [round(x + bx0), round(y + by0), bx1 - bx0, by1 - by0]})
         y += ph + PDF_GAP
-    meta = {"url": Path(path).resolve().as_uri(), "title": Path(path).stem, "width": width, "height": height,
+    title = (pdf.get_metadata_dict().get("Title") or "").strip() or re.sub(r"[-_]+", " ", Path(path).stem)
+    meta = {"url": Path(path).resolve().as_uri(), "title": title, "width": width, "height": height,
             "scale": scale, "bg": "rgb(232, 232, 235)", "kind": "pdf", "pages": len(pdf)}
     return sheet, "\n\n".join(texts), meta, boxes
 

@@ -20,11 +20,11 @@ GAP_S = 0.35
 SR = 44100
 
 DEFAULTS = {
-    "cartesia": {"model": "sonic-3.6", "voice": "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4", "speed": 1.0},
+    "cartesia": {"model": "sonic-3.6", "voice": "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4"},
     "elevenlabs": {"model": "eleven_multilingual_v2", "voice": "JBFqnCBsd6RMkjVDRZzb"},
     "openai": {"model": "gpt-4o-mini-tts", "voice": "coral",
                "instructions": "Warm, clear teacher walking someone through a page. Natural pace, no drama."},
-    "kokoro": {"voice": "af_heart", "speed": 1.0},
+    "kokoro": {"voice": "af_heart"},
     "say": {"voice": "Samantha", "rate": 185},
 }
 ORDER = [("cartesia", "CARTESIA_API_KEY"), ("elevenlabs", "ELEVENLABS_API_KEY"), ("openai", "OPENAI_API_KEY")]
@@ -58,6 +58,15 @@ def _opt(job, backend, key):
     if (job.get("tts") or "auto").lower() == backend and job.get(key) is not None:
         return job[key]
     return DEFAULTS[backend].get(key)
+
+
+def speed(job):
+    """One pace for every voice: 1.0 is normal, 1.25 is a quarter faster."""
+    return float(job.get("speed") or 1.0)
+
+
+def _clamp(v, lo, hi):
+    return max(lo, min(hi, v))
 
 
 def _ffmpeg(*args):
@@ -104,7 +113,7 @@ def _cartesia(text, job, wav):
     body = {"model_id": _opt(job, "cartesia", "model"), "transcript": text,
             "voice": {"mode": "id", "id": _opt(job, "cartesia", "voice")}, "language": job.get("language", "en"),
             "output_format": {"container": "raw", "encoding": "pcm_s16le", "sample_rate": SR},
-            "add_timestamps": True, "generation_config": {"speed": _opt(job, "cartesia", "speed")}}
+            "add_timestamps": True, "generation_config": {"speed": _clamp(speed(job), 0.6, 1.5)}}
     req = _request("https://api.cartesia.ai/tts/sse",
                    {"Authorization": f"Bearer {os.environ['CARTESIA_API_KEY']}", "Cartesia-Version": "2026-08-14"},
                    body)
@@ -132,7 +141,8 @@ def _cartesia(text, job, wav):
 def _elevenlabs(text, job, wav):
     voice, model = _opt(job, "elevenlabs", "voice"), _opt(job, "elevenlabs", "model")
     req = _request(f"https://api.elevenlabs.io/v1/text-to-speech/{voice}/with-timestamps?output_format=mp3_44100_128",
-                   {"xi-api-key": os.environ["ELEVENLABS_API_KEY"]}, {"text": text, "model_id": model})
+                   {"xi-api-key": os.environ["ELEVENLABS_API_KEY"]},
+                   {"text": text, "model_id": model, "voice_settings": {"speed": _clamp(speed(job), 0.7, 1.2)}})
     with _open(req) as r:
         data = json.loads(r.read())
     with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
@@ -147,7 +157,7 @@ def _elevenlabs(text, job, wav):
 
 def _openai(text, job, wav):
     body = {"model": _opt(job, "openai", "model"), "voice": _opt(job, "openai", "voice"), "input": text,
-            "response_format": "wav"}
+            "response_format": "wav", "speed": _clamp(speed(job), 0.25, 4.0)}
     if "tts-1" not in body["model"]:
         body["instructions"] = _opt(job, "openai", "instructions")
     req = _request("https://api.openai.com/v1/audio/speech",
@@ -161,14 +171,14 @@ def _openai(text, job, wav):
 
 def _kokoro(text, job, wav):
     from .local_voice import speak
-    speak(text, _opt(job, "kokoro", "voice"), _opt(job, "kokoro", "speed"), wav, SR)
+    speak(text, _opt(job, "kokoro", "voice"), _clamp(speed(job), 0.5, 2.0), wav, SR)
     return None
 
 
 def _say(text, job, wav):
     with tempfile.TemporaryDirectory() as tmp:
         aiff = Path(tmp) / "s.aiff"
-        subprocess.run(["say", "-o", str(aiff), "-v", _opt(job, "say", "voice"), "-r", str(_opt(job, "say", "rate")),
+        subprocess.run(["say", "-o", str(aiff), "-v", _opt(job, "say", "voice"), "-r", str(round(_opt(job, "say", "rate") * speed(job))),
                         text], check=True)
         _ffmpeg("-i", aiff, "-ar", SR, "-ac", 1, wav)
     return None
