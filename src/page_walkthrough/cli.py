@@ -72,19 +72,13 @@ def cmd_doctor(a):
         row("browser", False, str(e))
     row("ffmpeg", bool(shutil.which("ffmpeg")), shutil.which("ffmpeg") or "install ffmpeg")
     row("ffprobe", bool(shutil.which("ffprobe")), shutil.which("ffprobe") or "comes with ffmpeg")
-    voices = []
-    if os.environ.get("ELEVENLABS_API_KEY"):
-        voices.append("elevenlabs")
-    if os.environ.get("OPENAI_API_KEY"):
-        voices.append("openai")
-    try:
-        import kokoro_onnx  # noqa: F401
+    from .voice import ORDER, kokoro_available
+    voices = [name for name, env in ORDER if os.environ.get(env)]
+    if kokoro_available():
         voices.append("kokoro (local)")
-    except ImportError:
-        pass
     if platform.system() == "Darwin" and shutil.which("say"):
         voices.append("say (macOS)")
-    row("voice", bool(voices), ", ".join(voices) or "none: set ELEVENLABS_API_KEY or OPENAI_API_KEY, "
+    row("voice", bool(voices), ", ".join(voices) or "none: set CARTESIA_API_KEY, ELEVENLABS_API_KEY or OPENAI_API_KEY, "
         "or pip install 'page-walkthrough[local]'")
     try:
         import anthropic  # noqa: F401
@@ -109,7 +103,7 @@ def main(argv=None):
     def plan_args(p):
         p.add_argument("--seconds", type=int, default=90, help="target length (default 90)")
         p.add_argument("--format", default="portrait", choices=["portrait", "landscape", "square"])
-        p.add_argument("--tts", default="auto", choices=["auto", "elevenlabs", "openai", "kokoro", "say"])
+        p.add_argument("--tts", default="auto", choices=["auto", "cartesia", "elevenlabs", "openai", "kokoro", "say"])
         p.add_argument("--model", default="claude-opus-5", help="Claude model that plans the shots")
         p.add_argument("--note", help="extra direction for the planner, e.g. 'focus on the pricing table'")
 

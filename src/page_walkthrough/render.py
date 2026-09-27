@@ -126,15 +126,15 @@ def font(size):
 
 
 def caption_chunks(text, max_words):
-    words = text.split()
-    chunks, cur = [], []
-    for wd in words:
-        cur.append(wd)
-        if len(cur) >= max_words or (re.search(r"[.!?:;]$", wd) and len(cur) >= 3):
-            chunks.append(" ".join(cur))
-            cur = []
-    if cur:
-        chunks.append(" ".join(cur))
+    """Sentences first, then long sentences split into even pieces, so no caption straddles two sentences."""
+    chunks = []
+    for sent in re.split(r"(?<=[.!?])\s+", text.strip()):
+        words = sent.split()
+        if not words:
+            continue
+        n = math.ceil(len(words) / max_words)
+        size = math.ceil(len(words) / n)
+        chunks += [" ".join(words[i:i + size]) for i in range(0, len(words), size)]
     return chunks
 
 
@@ -291,7 +291,7 @@ def render(folder, out=None, log=print):
     out = Path(out) if out else d / "walkthrough.mp4"
     ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
                            "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-i", str(audio),
-                           "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
+                           "-c:v", "libx264", "-preset", "medium", "-crf", "22", "-pix_fmt", "yuv420p",
                            "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", str(out)],
                           stdin=subprocess.PIPE)
     canvas = Image.new("RGB", (W, H), bgc)

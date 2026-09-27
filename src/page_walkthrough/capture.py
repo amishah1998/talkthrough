@@ -74,7 +74,8 @@ FREEZE_JS = r"""
   document.head.appendChild(s);
   for (const el of document.querySelectorAll('*')) {
     const p = getComputedStyle(el).position;
-    if (p === 'fixed' || p === 'sticky') el.style.position = 'static';
+    if (p === 'fixed') el.style.setProperty('display', 'none', 'important');
+    else if (p === 'sticky') el.style.position = 'static';
   }
   return true;
 })()
@@ -147,6 +148,14 @@ async def _capture(url, width, scale):
                          deviceScaleFactor=scale, mobile=False)
             await c.call("Page.navigate", url=url)
             await c.wait_event("Page.loadEventFired")
+            for _ in range(30):
+                title = await c.js("document.title + ' ' + (document.body ? document.body.innerText.slice(0, 200) : '')")
+                if not re.search(r"just a moment|checking your browser|attention required|verify you are human",
+                                 title or "", re.I):
+                    break
+                await asyncio.sleep(1)
+            else:
+                print("warning: the page still shows a bot check; capture a saved copy instead", file=sys.stderr)
             await c.js("document.fonts ? document.fonts.ready.then(() => true) : true")
             await asyncio.sleep(0.8)
             await c.js(FREEZE_JS)

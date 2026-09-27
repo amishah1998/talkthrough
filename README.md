@@ -79,7 +79,18 @@ A shot list looks like this:
 
 ## Voices
 
-<!-- filled in after the voice comparison -->
+It picks the first one available, in this order, or you choose with `"tts"` in the shot list or `--tts`:
+
+| Voice | Setup | Captions | Cost | Notes |
+|---|---|---|---|---|
+| **Cartesia Sonic 3.6** | `CARTESIA_API_KEY` | exact word timings | about $0.25 per 1,000 words | #1 on the [Artificial Analysis TTS leaderboard](https://artificialanalysis.ai/text-to-speech/leaderboard) when this was written |
+| **ElevenLabs** | `ELEVENLABS_API_KEY` | exact word timings | about $0.30 to $0.60 per 1,000 words | Large voice library |
+| **OpenAI gpt-4o-mini-tts** | `OPENAI_API_KEY` | per sentence | cents per video | Tone and pace steerable with `"instructions"` |
+| **Kokoro** (local, free) | `pip install "page-walkthrough[local]"` | per sentence | free | Apache-2.0 weights, runs on CPU on macOS, Linux and Windows; one-time ~350 MB download |
+| **macOS `say`** | nothing | per sentence | free | Zero setup on a Mac; clearly synthetic |
+
+"Per sentence" means each sentence is voiced on its own and measured, so captions change exactly on
+sentence boundaries; words inside a sentence are spread by length.
 
 ## Requirements
 

@@ -18,9 +18,10 @@ what on the page matters, and writing what the voice says over each part.
 Run `page-walkthrough doctor`. If the command is missing, use
 `uvx --from git+https://github.com/karanb192/page-walkthrough page-walkthrough doctor`, or install it
 with `pip install "git+https://github.com/karanb192/page-walkthrough"`. It needs a Chromium browser
-(Chrome, Chromium or Edge) and ffmpeg. For the voice it uses, in order: ElevenLabs if
-`ELEVENLABS_API_KEY` is set, OpenAI if `OPENAI_API_KEY` is set, the local Kokoro voice if installed
-(`pip install "page-walkthrough[local]"`), then macOS `say`.
+(Chrome, Chromium or Edge) and ffmpeg. For the voice it uses, in order: Cartesia if
+`CARTESIA_API_KEY` is set, ElevenLabs if `ELEVENLABS_API_KEY` is set, OpenAI if `OPENAI_API_KEY` is
+set, the free local Kokoro voice if installed (`pip install "page-walkthrough[local]"`), then macOS
+`say`. If none is available, suggest the local voice.
 
 ## Workflow
 
@@ -62,7 +63,7 @@ Use a fresh work folder per video, e.g. `./walkthrough-work/<name>`.
      `zoom` and `hold` force one.
    - `spotlight` (default on) dims everything outside the framed region and outlines it, so the
      viewer knows what the voice is talking about. Set `false` per shot or at the top level.
-   - `tts`: `auto`, `elevenlabs`, `openai`, `kokoro` or `say`. With a named backend you may also set
+   - `tts`: `auto`, `cartesia`, `elevenlabs`, `openai`, `kokoro` or `say`. With a named backend you may also set
      `voice`, `model` (cloud), `instructions` (OpenAI), `speed` (Kokoro) or `rate` (say).
 
    If the user has no agent handy, `page-walkthrough plan DIR --seconds 90` asks Claude to write this
@@ -101,5 +102,5 @@ Use a fresh work folder per video, e.g. `./walkthrough-work/<name>`.
   shrink `rect` below the zoom limit to crop neighbours away.
 - **Pages that need a login or build their content slowly** may capture half-loaded. Capture a saved
   copy or the PDF instead.
-- **Caption timing without word timings** (OpenAI, `say`) is spread by word count within each shot;
-  it tracks well at a steady pace.
+- **Captions** use exact word timings from Cartesia and ElevenLabs. Other voices speak one sentence
+  at a time, so captions change exactly on sentence boundaries.
