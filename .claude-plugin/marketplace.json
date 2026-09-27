@@ -1,0 +1,11 @@
+{
+  "name": "page-walkthrough",
+  "owner": { "name": "Karan Bansal" },
+  "plugins": [
+    {
+      "name": "page-walkthrough",
+      "source": "./",
+      "description": "Turn any HTML page or PDF into a narrated walkthrough video of itself"
+    }
+  ]
+}
