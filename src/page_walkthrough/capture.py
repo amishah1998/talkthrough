@@ -69,6 +69,11 @@ BOXES_JS = r"""
 
 FREEZE_JS = r"""
 (() => {
+  const target = location.hash ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
+  if (target) {
+    if (target.tagName === 'DETAILS') target.open = true;
+    for (let d = target.closest('details'); d; d = d.parentElement && d.parentElement.closest('details')) d.open = true;
+  }
   const s = document.createElement('style');
   s.textContent = '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}';
   document.head.appendChild(s);
@@ -161,7 +166,7 @@ async def _capture(url, width, scale):
             await c.js(FREEZE_JS)
             await asyncio.sleep(0.3)
             height = int(await c.js("Math.ceil(document.documentElement.scrollHeight)"))
-            boxes = await c.js(BOXES_JS)
+            boxes = [b for b in await c.js(BOXES_JS) if b["rect"][1] + b["rect"][3] <= height + 2]
             text = await c.js("document.body.innerText")
             title = await c.js("document.title")
             bg = await c.js("getComputedStyle(document.body).backgroundColor")
