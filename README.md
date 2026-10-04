@@ -4,6 +4,8 @@
 
 **A walkthrough that talks. Any HTML page or PDF becomes a narrated video of itself.**
 
+By [Ami Shah](https://github.com/amishah1998) and [Karan Bansal](https://github.com/karanb192).
+
 A camera moves over the real page one section at a time, a spotlight shows what is being explained,
 a voice explains it, and captions follow the voice. Nothing on screen is redrawn or restyled: every
 frame is a real crop of your page, so the diagram in the video is the diagram in the document.
@@ -150,6 +152,11 @@ sentence boundaries; words inside a sentence are spread by length.
 - Narration works best in English or Hinglish in Roman letters. Pages in any language capture fine,
   and Hindi in a caption gets a Devanagari font, but the voices are tuned for English and correctly
   joined Hindi letters need libraqm installed.
+
+## Made by
+
+[Ami Shah](https://github.com/amishah1998) and [Karan Bansal](https://github.com/karanb192), built with
+Claude Code.
 
 ## Licence
 
