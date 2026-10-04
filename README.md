@@ -1,24 +1,31 @@
 # talkthrough
 
+[![smoke](https://github.com/amishah1998/talkthrough/actions/workflows/smoke.yml/badge.svg)](https://github.com/amishah1998/talkthrough/actions/workflows/smoke.yml)
+
 **A walkthrough that talks. Any HTML page or PDF becomes a narrated video of itself.**
 
 A camera moves over the real page one section at a time, a spotlight shows what is being explained,
-a voice explains it using only what the page says, and captions follow the voice. Nothing is
-redrawn, restyled or invented: every frame is a real crop of your page, so the diagram in the video
-is the diagram in the document.
+a voice explains it, and captions follow the voice. Nothing on screen is redrawn or restyled: every
+frame is a real crop of your page, so the diagram in the video is the diagram in the document.
+
+![The spotlight moves from the wrong answer to the right one in the Chain-of-Thought paper](docs/demo.gif)
+
+*The Chain-of-Thought Prompting paper ([Wei et al. 2022](https://arxiv.org/abs/2201.11903), CC BY 4.0).
+The full 58-second walkthrough, with sound and the free local voice:*
 
 https://github.com/user-attachments/assets/bbc0805c-d711-4213-aeb9-a08ec82a8158
 
-*The Chain-of-Thought Prompting paper ([Wei et al. 2022](https://arxiv.org/abs/2201.11903), CC BY 4.0)
-walked through in 58 seconds, with the free local voice.*
+The narration is written by Claude from the page's own text, under one rule: add nothing the page
+does not say. That keeps the numbers right far more often than a fresh script would, but it is a model
+writing text, not a guarantee. Read the shot list or the preview sheet before you share a video about
+numbers that matter.
 
-Other tools regenerate your content: they write a fresh script and invent their own visuals. This
-one keeps it. Use it for the report nobody will open, the recap your students watch on the bus, or
-the docs page you want to post as a 90-second clip.
+Use it for the report nobody will open, the recap your students watch on the bus, or the docs page
+you want to post as a 90-second clip.
 
 ## Quickstart
 
-### In Claude Code
+### In Claude Code (recommended)
 
 ```
 /plugin marketplace add amishah1998/talkthrough
@@ -26,22 +33,29 @@ the docs page you want to post as a 90-second clip.
 ```
 
 Then ask: "make a walkthrough video of report.pdf". Claude reads the page, decides what to focus on,
-writes the shot list, checks the framing on a preview sheet, and renders. No Anthropic API key
-needed; the agent does the planning.
+writes the shot list, checks the framing on a preview sheet, and renders with the free local voice.
+No API key needed; the agent does the planning.
 
 The skill in `skills/talkthrough/` follows the Agent Skills format, so other agents that read
 skills can use the same folder.
 
 ### From the command line
 
+You write the shot list, the tool does the rest. No API key, and this is the path the test suite runs
+on Linux:
+
 ```bash
-pip install "talkthrough[plan] @ git+https://github.com/amishah1998/talkthrough"
-talkthrough doctor                      # checks browser, ffmpeg and a voice
-talkthrough make report.pdf --seconds 90 --open   # --open plays it in your browser
+pip install "talkthrough[local] @ git+https://github.com/amishah1998/talkthrough"
+talkthrough doctor                                  # checks browser, ffmpeg and a voice
+talkthrough capture report.pdf --out work/          # page image and a numbered list of sections
+# write work/shots.json (format below), then:
+talkthrough preview work/ && talkthrough render work/ --out report.mp4 --open
 ```
 
-`make` captures the page, has Claude pick what matters and write the narration, shows you a preview
-sheet, and renders `report-walkthrough.mp4`. It needs `ANTHROPIC_API_KEY` for the planning step.
+The `plan` and `make` commands are untested as of this release; the capture, hand-written
+shots.json, preview and render path is verified. `talkthrough make report.pdf` does it all in one go,
+with Claude choosing the sections through the API, and needs `ANTHROPIC_API_KEY` plus
+`pip install "talkthrough[all] @ git+https://github.com/amishah1998/talkthrough"`.
 
 ## How it works
 
@@ -123,17 +137,16 @@ sentence boundaries; words inside a sentence are spread by length.
 
 ## Limits
 
-- Tested on macOS only. Linux and Windows browser discovery and fonts are written but untested.
-- The Cartesia, ElevenLabs and OpenAI voices and the `plan` command have not been run end to end yet.
-  The local Kokoro voice has.
+- Tested on macOS by hand and on Ubuntu (Python 3.10 and 3.12) by the smoke test on every push:
+  an HTML page and a PDF rendered with the Kokoro voice. Windows support is written but untested.
+- The Cartesia, ElevenLabs and OpenAI voices and the `plan` and `make` commands have not been run
+  end to end yet. The local Kokoro voice has.
 - Section detection splits on white space, so a figure with tightly packed panels can come out as
   one section. Frame part of it with a `rect`; the outline snaps to the content you meant.
 - Pages behind a login or that build slowly can capture half-loaded. Capture a saved copy or a PDF.
 - Narration works best in English or Hinglish in Roman letters. Pages in any language capture fine,
   and Hindi in a caption gets a Devanagari font, but the voices are tuned for English and correctly
   joined Hindi letters need libraqm installed.
-- The narration is only as faithful as the shot list. Read `shots.json` or the preview sheet before
-  you share a video about numbers that matter.
 
 ## Licence
 
