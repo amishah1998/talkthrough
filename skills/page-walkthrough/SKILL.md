@@ -63,6 +63,10 @@ Use a fresh work folder per video, e.g. `./walkthrough-work/<name>`.
      `zoom` and `hold` force one.
    - `spotlight` (default on) dims everything outside the framed region and outlines it, so the
      viewer knows what the voice is talking about. Set `false` per shot or at the top level.
+   - The outline snaps to the content inside `boxes` or `rect`: it shrinks to the ink, drops a thin
+     edge strip the rect cut through (half a caption, a sliver of the next panel), and pads each side
+     by up to `pad` (24 css px) or halfway to the nearest neighbour. A rough `rect` is fine. Set
+     `"snap": false` on a shot to outline the exact rect instead.
    - `tts`: `auto`, `cartesia`, `elevenlabs`, `openai`, `kokoro` or `say`. With a named backend you may also set
      `voice`, `model` (cloud), `instructions` (OpenAI) or `rate` (say).
 

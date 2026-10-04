@@ -33,7 +33,101 @@ def load_job(d):
     return d, meta, boxes, job
 
 
-def shot_rect(shot, boxes, meta):
+def ink_mask(page):
+    """Pixels that differ from the page background, so dark pages snap as well as white ones."""
+    grey = page.convert("L")
+    hist = grey.histogram()
+    bg = hist.index(max(hist))
+    return grey.point(lambda v: 255 if abs(v - bg) > 24 else 0)
+
+
+def _bands(proj, min_gap):
+    """Runs of ink in a projection, split wherever at least min_gap empty cells separate them."""
+    out, start, gap = [], None, 0
+    for i, v in enumerate(proj):
+        if v:
+            if start is None:
+                start = i
+            gap, last = 0, i
+        elif start is not None:
+            gap += 1
+            if gap >= min_gap:
+                out.append((start, last + 1))
+                start = None
+    if start is not None:
+        out.append((start, last + 1))
+    return out
+
+
+def _trim_cut_edges(ink, box, s):
+    """Drop a thin edge band whose content runs on past the rect: the rect was slicing through it.
+
+    Typical case: a box drawn around one panel of a figure also catches the left half of the shared caption
+    and a sliver of the next panel's border."""
+    x0, y0, x1, y1 = box
+    near = round(4 * s)
+    for _ in range(4):
+        cols, rows = ink.crop((x0, y0, x1, y1)).getprojection()
+        rb, cb = _bands(rows, round(2 * s)), _bands(cols, round(2 * s))
+        h, w = y1 - y0, x1 - x0
+        def inked(box):
+            return ink.crop(box).getbbox() is not None
+
+        def row_cut(a, b, edge):
+            beyond = (x0, y1, x1, min(ink.height, y1 + near)) if edge == "bottom" else (x0, max(0, y0 - near), x1, y0)
+            return inked(beyond) or inked((max(0, x0 - near), y0 + a, x0, y0 + b)) or \
+                inked((x1, y0 + a, min(ink.width, x1 + near), y0 + b))
+
+        def col_cut(a, b, edge):
+            beyond = (x1, y0, min(ink.width, x1 + near), y1) if edge == "right" else (max(0, x0 - near), y0, x0, y1)
+            return inked(beyond) or inked((x0 + a, max(0, y0 - near), x0 + b, y0)) or \
+                inked((x0 + a, y1, x0 + b, min(ink.height, y1 + near)))
+
+        if len(rb) > 1 and rb[-1][1] - rb[-1][0] < 0.2 * h and row_cut(*rb[-1], "bottom"):
+            y1 = y0 + rb[-2][1]
+        elif len(rb) > 1 and rb[0][1] - rb[0][0] < 0.2 * h and row_cut(*rb[0], "top"):
+            y0 = y0 + rb[1][0]
+        elif len(cb) > 1 and cb[-1][1] - cb[-1][0] < 0.2 * w and col_cut(*cb[-1], "right"):
+            x1 = x0 + cb[-2][1]
+        elif len(cb) > 1 and cb[0][1] - cb[0][0] < 0.2 * w and col_cut(*cb[0], "left"):
+            x0 = x0 + cb[1][0]
+        else:
+            break
+        tight = ink.crop((x0, y0, x1, y1)).getbbox()
+        if tight:
+            x0, y0, x1, y1 = x0 + tight[0], y0 + tight[1], x0 + tight[2], y0 + tight[3]
+    return x0, y0, x1, y1
+
+
+def snap(rect, pad, ink, scale):
+    """Shrink rect to the ink inside it, then pad each side only as far as the white space allows.
+
+    Rects are often placed by eye, and a fixed pad pushed the outline into the next column or caption."""
+    x, y, w, h = rect
+    s = scale
+    x0, y0, x1, y1 = round(x * s), round(y * s), round((x + w) * s), round((y + h) * s)
+    tight = ink.crop((x0, y0, x1, y1)).getbbox()
+    if not tight:
+        return rect
+    x0, y0, x1, y1 = _trim_cut_edges(ink, (x0 + tight[0], y0 + tight[1], x0 + tight[2], y0 + tight[3]), s)
+    reach = round(pad * s)
+    look = 2 * reach
+    top = ink.crop((x0, max(0, y0 - look), x1, y0)).getbbox()
+    bottom = ink.crop((x0, y1, x1, min(ink.height, y1 + look))).getbbox()
+    left = ink.crop((max(0, x0 - look), y0, x0, y1)).getbbox()
+    right = ink.crop((x1, y0, min(ink.width, x1 + look), y1)).getbbox()
+    gaps = [
+        min(look, y0) - top[3] if top else look,
+        bottom[1] if bottom else look,
+        min(look, x0) - left[2] if left else look,
+        right[0] if right else look,
+    ]
+    # Meet a neighbour halfway rather than touching it.
+    pt, pb, pl, pr = (max(1, min(reach, g // 2)) for g in gaps)
+    return (x0 - pl) / s, (y0 - pt) / s, (x1 - x0 + pl + pr) / s, (y1 - y0 + pt + pb) / s
+
+
+def shot_rect(shot, boxes, meta, ink=None):
     if "rect" in shot:
         x, y, w, h = shot["rect"]
     else:
@@ -46,8 +140,13 @@ def shot_rect(shot, boxes, meta):
         x1, y1 = max(r[0] + r[2] for r in rs), max(r[1] + r[3] for r in rs)
         x, y, w, h = x0, y0, x1 - x0, y1 - y0
     pad = shot.get("pad", PAD)
-    x, y = max(0, x - pad), max(0, y - pad)
-    w, h = min(meta["width"] - x, w + 2 * pad), min(meta["height"] - y, h + 2 * pad)
+    if ink is not None and shot.get("snap", True):
+        x, y, w, h = snap((x, y, w, h), pad, ink, meta["scale"])
+    else:
+        x, y = x - pad, y - pad
+        w, h = w + 2 * pad, h + 2 * pad
+    x, y = max(0, x), max(0, y)
+    w, h = min(meta["width"] - x, w), min(meta["height"] - y, h)
     return x, y, w, h
 
 
@@ -204,8 +303,9 @@ def build_plan(d, meta, boxes, job, with_audio):
     audio_dir = d / "audio"
     if with_audio:
         audio_dir.mkdir(exist_ok=True)
+    ink = ink_mask(Image.open(d / "page.png"))
     for i, s in enumerate(job["shots"]):
-        rect = shot_rect(s, boxes, meta)
+        rect = shot_rect(s, boxes, meta, ink)
         start, end = shot_moves(rect, view, meta, s.get("move", "auto"), min_w)
         dur, words = None, None
         if with_audio:
@@ -224,7 +324,11 @@ def frame_at(page, scale, win, view):
     return page.resize(view, Image.Resampling.BICUBIC, box=box, reducing_gap=2.0)
 
 
-def spotlight(frame, win, rect, view, alpha):
+def overlaps(a, b):
+    return a[0] < b[0] + b[2] and b[0] < a[0] + a[2] and a[1] < b[1] + b[3] and b[1] < a[1] + a[3]
+
+
+def spotlight(frame, win, rect, view, alpha, strength=1.0):
     """Dim everything outside rect and outline it, so the eye lands on the section being narrated."""
     wx, wy, ww, wh = win
     sx, sy = view[0] / ww, view[1] / wh
@@ -234,9 +338,9 @@ def spotlight(frame, win, rect, view, alpha):
         return frame
     mask = Image.new("L", view, int(255 * alpha))
     ImageDraw.Draw(mask).rounded_rectangle((x0, y0, x1, y1), radius=18, fill=0)
-    frame = Image.composite(Image.new("RGB", view, (24, 24, 27)), frame, mask)
-    ImageDraw.Draw(frame).rounded_rectangle((x0, y0, x1, y1), radius=18, outline=(99, 102, 241), width=4)
-    return frame
+    lit = Image.composite(Image.new("RGB", view, (24, 24, 27)), frame, mask)
+    ImageDraw.Draw(lit).rounded_rectangle((x0, y0, x1, y1), radius=18, outline=(99, 102, 241), width=4)
+    return lit if strength >= 1 else Image.blend(frame, lit, strength)
 
 
 def preview(folder):
@@ -374,19 +478,25 @@ def render(folder, out=None, log=print, quality=None, speed=None):
         k = max(i for i, p in enumerate(plan) if p["t"] <= t) if t >= plan[0]["t"] else 0
         p = plan[k]
         local = max(0.0, t - p["t"])
-        rect, spot = p["rect"], p["spot"]
+        rect, spot, strength = p["rect"], p["spot"], 1.0
         if k > 0 and local < MOVE_S:
+            prev = plan[k - 1]
             e = ease(local / MOVE_S)
-            win = lerp_win(plan[k - 1]["end"], p["start"], e)
-            rect = lerp_win(plan[k - 1]["rect"], p["rect"], e)
-            spot = p["spot"] or plan[k - 1]["spot"]
+            win = lerp_win(prev["end"], p["start"], e)
+            if overlaps(prev["end"], p["start"]):
+                rect = lerp_win(prev["rect"], p["rect"], e)
+                spot = p["spot"] or prev["spot"]
+            else:
+                # On a long jump a sliding box would land on whatever the camera passes; fade it instead.
+                rect, spot = (prev["rect"], prev["spot"]) if e < 0.5 else (p["rect"], p["spot"])
+                strength = abs(1 - 2 * e)
         else:
             span = max(0.01, p["dur"] - (MOVE_S if k > 0 else 0))
             u = min(1.0, (local - (MOVE_S if k > 0 else 0)) / span)
             win = lerp_win(p["start"], p["end"], ease(u))
         fr = frame_at(page, scale, win, view)
-        if spot:
-            fr = spotlight(fr, win, rect, view, 0.42)
+        if spot and strength > 0.02:
+            fr = spotlight(fr, win, rect, view, 0.42, strength)
         return fr, p
 
     def shot_frame(t):
