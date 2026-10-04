@@ -1,6 +1,6 @@
 # talkthrough
 
-[![smoke](https://github.com/amishah1998/talkthrough/actions/workflows/smoke.yml/badge.svg)](https://github.com/amishah1998/talkthrough/actions/workflows/smoke.yml)
+[![PyPI](https://img.shields.io/pypi/v/talkthrough)](https://pypi.org/project/talkthrough/) [![smoke](https://github.com/amishah1998/talkthrough/actions/workflows/smoke.yml/badge.svg)](https://github.com/amishah1998/talkthrough/actions/workflows/smoke.yml)
 
 **A walkthrough that talks. Any HTML page or PDF becomes a narrated video of itself.**
 
@@ -45,7 +45,7 @@ You write the shot list, the tool does the rest. No API key, and this is the pat
 on Linux:
 
 ```bash
-pip install "talkthrough[local] @ git+https://github.com/amishah1998/talkthrough"
+pip install "talkthrough[local]"
 talkthrough doctor                                  # checks browser, ffmpeg and a voice
 talkthrough capture report.pdf --out work/          # page image and a numbered list of sections
 # write work/shots.json (format below), then:
@@ -55,7 +55,7 @@ talkthrough preview work/ && talkthrough render work/ --out report.mp4 --open
 The `plan` and `make` commands are untested as of this release; the capture, hand-written
 shots.json, preview and render path is verified. `talkthrough make report.pdf` does it all in one go,
 with Claude choosing the sections through the API, and needs `ANTHROPIC_API_KEY` plus
-`pip install "talkthrough[all] @ git+https://github.com/amishah1998/talkthrough"`.
+`pip install "talkthrough[all]"`.
 
 ## How it works
 
@@ -119,7 +119,7 @@ It picks the first one available, in this order, or you choose with `"tts"` in t
 | **Cartesia Sonic 3.6** | `CARTESIA_API_KEY` | exact word timings | about $0.25 per 1,000 words | #1 on the [Artificial Analysis TTS leaderboard](https://artificialanalysis.ai/text-to-speech/leaderboard) when this was written |
 | **ElevenLabs** | `ELEVENLABS_API_KEY` | exact word timings | about $0.30 to $0.60 per 1,000 words | Large voice library |
 | **OpenAI gpt-4o-mini-tts** | `OPENAI_API_KEY` | per sentence | cents per video | Tone and pace steerable with `"instructions"` |
-| **Kokoro** (local, free) | `pip install "talkthrough[local] @ git+https://github.com/amishah1998/talkthrough"` | per sentence | free | Apache-2.0 weights, runs on CPU on macOS, Linux and Windows; one-time ~350 MB download |
+| **Kokoro** (local, free) | `pip install "talkthrough[local]"` | per sentence | free | Apache-2.0 weights, runs on CPU on macOS, Linux and Windows; one-time ~350 MB download |
 | **macOS `say`** | nothing | per sentence | free | Zero setup on a Mac; clearly synthetic |
 
 "Per sentence" means each sentence is voiced on its own and measured, so captions change exactly on
