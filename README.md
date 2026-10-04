@@ -29,12 +29,15 @@ you want to post as a 90-second clip.
 
 ```
 /plugin marketplace add amishah1998/talkthrough
-/plugin install talkthrough@talkthrough
+/plugin install talkthrough-video@amishah1998
 ```
 
 Then ask: "make a walkthrough video of report.pdf". Claude reads the page, decides what to focus on,
 writes the shot list, checks the framing on a preview sheet, and renders with the free local voice.
 No API key needed; the agent does the planning.
+
+Not to be confused with [talkthrough-mcp](https://github.com/korovin-aa97/talkthrough-mcp), a
+different project that turns screen recordings into bug reports. This plugin is `talkthrough-video`.
 
 The skill in `skills/talkthrough/` follows the Agent Skills format, so other agents that read
 skills can use the same folder.

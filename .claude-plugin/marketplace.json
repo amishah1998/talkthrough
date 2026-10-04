@@ -1,9 +1,11 @@
 {
-  "name": "talkthrough",
-  "owner": { "name": "Karan Bansal" },
+  "name": "amishah1998",
+  "owner": {
+    "name": "Karan Bansal"
+  },
   "plugins": [
     {
-      "name": "talkthrough",
+      "name": "talkthrough-video",
       "source": "./",
       "description": "Turn any HTML page or PDF into a narrated walkthrough video of itself"
     }
