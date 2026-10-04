@@ -43,7 +43,7 @@ def ink_mask(page):
 
 def _bands(proj, min_gap):
     """Runs of ink in a projection, split wherever at least min_gap empty cells separate them."""
-    out, start, gap = [], None, 0
+    out, start, gap, last = [], None, 0, 0
     for i, v in enumerate(proj):
         if v:
             if start is None:
@@ -67,7 +67,7 @@ def _trim_cut_edges(ink, rect, tight, s):
     cascades through the lines of a paragraph."""
     X0, Y0, X1, Y1 = rect
     x0, y0, x1, y1 = tight
-    near, touch, gap = round(4 * s), round(1 * s), round(2 * s)
+    near, skip, touch, gap = round(6 * s), round(2 * s), round(1 * s), round(2 * s)
 
     def inked(box):
         x, y, xx, yy = max(0, box[0]), max(0, box[1]), min(ink.width, box[2]), min(ink.height, box[3])
@@ -78,11 +78,12 @@ def _trim_cut_edges(ink, rect, tight, s):
         if not bb:
             return False
         bx0, by0, bx1, by1 = box[0] + bb[0], box[1] + bb[1], box[0] + bb[2], box[1] + bb[3]
-        # Skip the pixel right at the edge: a glyph overhanging its own box by a pixel is not a cut.
-        return (bx0 <= X0 + touch and inked((X0 - near, by0, X0 - touch, by1))) or \
-            (bx1 >= X1 - touch and inked((X1 + touch, by0, X1 + near, by1))) or \
-            (by0 <= Y0 + touch and inked((bx0, Y0 - near, bx1, Y0 - touch))) or \
-            (by1 >= Y1 - touch and inked((bx0, Y1 + touch, bx1, Y1 + near)))
+        # Look a little way past the edge, not right at it: a glyph's overhang (the tail of a j, a serif)
+        # stops within a pixel or two, while content the rect actually cut keeps going.
+        return (bx0 <= X0 + touch and inked((X0 - near, by0, X0 - skip, by1))) or \
+            (bx1 >= X1 - touch and inked((X1 + skip, by0, X1 + near, by1))) or \
+            (by0 <= Y0 + touch and inked((bx0, Y0 - near, bx1, Y0 - skip))) or \
+            (by1 >= Y1 - touch and inked((bx0, Y1 + skip, bx1, Y1 + near)))
 
     rows = [(y0 + a, y0 + b) for a, b in _bands(ink.crop((x0, y0, x1, y1)).getprojection()[1], gap)]
     if len(rows) > 1:
@@ -115,6 +116,21 @@ def snap(rect, pad, ink, scale):
     if not tight:
         return rect
     x0, y0, x1, y1 = _trim_cut_edges(ink, (x0, y0, x1, y1), (x0 + tight[0], y0 + tight[1], x0 + tight[2], y0 + tight[3]), s)
+    # A glyph that overhangs its element box by a pixel belongs to the content, not to a neighbour;
+    # left outside, it made the pad collapse to one pixel and the outline sat on the first letter.
+    touch = max(1, round(s))
+    for _ in range(3):
+        grown = (x0, y0, x1, y1)
+        if x0 > 0 and ink.crop((x0 - touch, y0, x0, y1)).getbbox():
+            x0 -= touch
+        if x1 < ink.width and ink.crop((x1, y0, x1 + touch, y1)).getbbox():
+            x1 += touch
+        if y0 > 0 and ink.crop((x0, y0 - touch, x1, y0)).getbbox():
+            y0 -= touch
+        if y1 < ink.height and ink.crop((x0, y1, x1, y1 + touch)).getbbox():
+            y1 += touch
+        if (x0, y0, x1, y1) == grown:
+            break
     reach = round(pad * s)
     look = 2 * reach
     top = ink.crop((x0, max(0, y0 - look), x1, y0)).getbbox()
