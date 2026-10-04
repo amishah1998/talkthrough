@@ -1,6 +1,6 @@
 [project]
 name = "talkthrough"
-version = "0.1.0"
+version = "0.1.1"
 description = "Turn any HTML page or PDF into a narrated walkthrough video of itself"
 readme = "README.md"
 requires-python = ">=3.10"
