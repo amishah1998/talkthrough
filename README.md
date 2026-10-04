@@ -37,7 +37,7 @@ skills can use the same folder.
 ```bash
 pip install "page-walkthrough[plan] @ git+https://github.com/amishah1998/page-walkthrough"
 page-walkthrough doctor                      # checks browser, ffmpeg and a voice
-page-walkthrough make report.pdf --seconds 90
+page-walkthrough make report.pdf --seconds 90 --open   # --open plays it in your browser
 ```
 
 `make` captures the page, has Claude pick what matters and write the narration, shows you a preview

@@ -3,9 +3,12 @@ import argparse
 import json
 import os
 import platform
+import plistlib
 import shutil
+import subprocess
 import sys
 import tempfile
+import webbrowser
 from pathlib import Path
 
 from . import __version__
@@ -35,9 +38,39 @@ def cmd_preview(a):
     preview(a.dir)
 
 
+def _mac_default_browser():
+    """Bundle id of the app that handles https links, or None if the user never changed it (Safari)."""
+    prefs = Path.home() / "Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist"
+    try:
+        handlers = plistlib.loads(prefs.read_bytes()).get("LSHandlers", [])
+    except (OSError, plistlib.InvalidFileException):
+        return None
+    for scheme in ("https", "http"):
+        for h in handlers:
+            if h.get("LSHandlerURLScheme") == scheme and h.get("LSHandlerRoleAll"):
+                return h["LSHandlerRoleAll"]
+    return None
+
+
+def open_in_browser(video):
+    """Play the finished video in the default web browser.
+
+    On macOS a plain open hands an .mp4 to QuickTime, so the browser is looked up and named explicitly."""
+    video = Path(video).resolve()
+    if platform.system() == "Darwin":
+        bundle = _mac_default_browser()
+        args = ["open", "-b", bundle, str(video)] if bundle else ["open", "-a", "Safari", str(video)]
+        if subprocess.run(args, capture_output=True).returncode == 0:
+            return
+    if not webbrowser.open(video.as_uri()):
+        print(f"could not open a browser; the video is at {video}", file=sys.stderr)
+
+
 def cmd_render(a):
     from .render import render
-    render(a.dir, a.out, quality="share" if a.share else None, speed=a.speed)
+    out = render(a.dir, a.out, quality="share" if a.share else None, speed=a.speed)
+    if a.open:
+        open_in_browser(out)
 
 
 def cmd_make(a):
@@ -54,6 +87,8 @@ def cmd_make(a):
     render(folder, out, quality="share" if a.share else None, speed=a.speed)
     if not a.keep:
         shutil.rmtree(folder, ignore_errors=True)
+    if a.open:
+        open_in_browser(out)
 
 
 def cmd_doctor(a):
@@ -127,6 +162,7 @@ def main(argv=None):
     p.add_argument("--out")
     p.add_argument("--share", action="store_true", help="smaller file for chat apps (about half the size)")
     p.add_argument("--speed", type=float, help="voice pace, e.g. 1.25 or 1.5 (default 1.0)")
+    p.add_argument("--open", action="store_true", help="play the video in your web browser when it is done")
     p.set_defaults(fn=cmd_render)
 
     p = sub.add_parser("make", help="capture, plan, preview and render in one go")
@@ -135,6 +171,7 @@ def main(argv=None):
     p.add_argument("--keep", help="keep the work folder here")
     p.add_argument("--share", action="store_true", help="smaller file for chat apps (about half the size)")
     p.add_argument("--speed", type=float, help="voice pace, e.g. 1.25 or 1.5 (default 1.0)")
+    p.add_argument("--open", action="store_true", help="play the video in your web browser when it is done")
     capture_args(p)
     plan_args(p)
     p.set_defaults(fn=cmd_make)
