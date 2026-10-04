@@ -20,7 +20,7 @@ Run `page-walkthrough doctor`. If the command is missing, use
 with `pip install "git+https://github.com/amishah1998/page-walkthrough"`. It needs a Chromium browser
 (Chrome, Chromium or Edge) and ffmpeg. For the voice it uses, in order: Cartesia if
 `CARTESIA_API_KEY` is set, ElevenLabs if `ELEVENLABS_API_KEY` is set, OpenAI if `OPENAI_API_KEY` is
-set, the free local Kokoro voice if installed (`pip install "page-walkthrough[local]"`), then macOS
+set, the free local Kokoro voice if installed (`pip install "page-walkthrough[local] @ git+https://github.com/amishah1998/page-walkthrough"`), then macOS
 `say`. If none is available, suggest the local voice.
 
 ## Workflow
@@ -76,7 +76,7 @@ Use a fresh work folder per video, e.g. `./walkthrough-work/<name>`.
      and `credit` set to `false` turn those parts off.
 
    If the user has no agent handy, `page-walkthrough plan DIR --seconds 90` asks Claude to write this
-   file (needs `pip install "page-walkthrough[plan]"` and `ANTHROPIC_API_KEY`).
+   file (needs `pip install "page-walkthrough[plan] @ git+https://github.com/amishah1998/page-walkthrough"` and `ANTHROPIC_API_KEY`).
 
 4. **Preview before rendering.** `page-walkthrough preview DIR` writes `DIR/preview.png`, one
    spotlighted frame per shot, and prints the expected length. Look at it. Each shot must frame what

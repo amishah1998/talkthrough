@@ -79,7 +79,7 @@ def cmd_doctor(a):
     if platform.system() == "Darwin" and shutil.which("say"):
         voices.append("say (macOS)")
     row("voice", bool(voices), ", ".join(voices) or "none: set CARTESIA_API_KEY, ELEVENLABS_API_KEY or OPENAI_API_KEY, "
-        "or pip install 'page-walkthrough[local]'")
+        "or pip install 'page-walkthrough[local] @ git+https://github.com/amishah1998/page-walkthrough'")
     try:
         import anthropic  # noqa: F401
         has_sdk = True
@@ -87,7 +87,7 @@ def cmd_doctor(a):
         has_sdk = False
     auto = has_sdk and bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
     row("(optional) auto-plan", auto, "ready" if auto else
-        "needs pip install 'page-walkthrough[plan]' and ANTHROPIC_API_KEY; not needed when an agent writes shots.json")
+        "needs pip install 'page-walkthrough[plan] @ git+https://github.com/amishah1998/page-walkthrough' and ANTHROPIC_API_KEY; not needed when an agent writes shots.json")
     sys.exit(0 if ok else 1)
 
 

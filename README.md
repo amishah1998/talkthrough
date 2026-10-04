@@ -7,23 +7,16 @@ a voice explains it using only what the page says, and captions follow the voice
 redrawn, restyled or invented: every frame is a real crop of your page, so the diagram in the video
 is the diagram in the document.
 
-<!-- demo video goes here -->
+https://github.com/user-attachments/assets/71758800-13d6-42d9-904d-d8adadf3a8d4
+
+*The Chain-of-Thought Prompting paper ([Wei et al. 2022](https://arxiv.org/abs/2201.11903), CC BY 4.0)
+walked through in 58 seconds, with the free local voice.*
 
 Other tools regenerate your content: they write a fresh script and invent their own visuals. This
 one keeps it. Use it for the report nobody will open, the recap your students watch on the bus, or
 the docs page you want to post as a 90-second clip.
 
 ## Quickstart
-
-```bash
-pip install "git+https://github.com/amishah1998/page-walkthrough"
-page-walkthrough doctor                      # checks browser, ffmpeg and a voice
-page-walkthrough make report.pdf --seconds 90
-```
-
-`make` captures the page, has Claude pick what matters and write the narration, shows you a preview
-sheet, and renders `report-walkthrough.mp4`. It needs `ANTHROPIC_API_KEY` for the planning step
-(`pip install "page-walkthrough[plan]"`).
 
 ### In Claude Code
 
@@ -32,12 +25,23 @@ sheet, and renders `report-walkthrough.mp4`. It needs `ANTHROPIC_API_KEY` for th
 /plugin install page-walkthrough@page-walkthrough
 ```
 
-Then ask: "make a walkthrough video of recap.html". Claude reads the page, decides what to focus on,
+Then ask: "make a walkthrough video of report.pdf". Claude reads the page, decides what to focus on,
 writes the shot list, checks the framing on a preview sheet, and renders. No Anthropic API key
 needed; the agent does the planning.
 
 The skill in `skills/page-walkthrough/` follows the Agent Skills format, so other agents that read
 skills can use the same folder.
+
+### From the command line
+
+```bash
+pip install "page-walkthrough[plan] @ git+https://github.com/amishah1998/page-walkthrough"
+page-walkthrough doctor                      # checks browser, ffmpeg and a voice
+page-walkthrough make report.pdf --seconds 90
+```
+
+`make` captures the page, has Claude pick what matters and write the narration, shows you a preview
+sheet, and renders `report-walkthrough.mp4`. It needs `ANTHROPIC_API_KEY` for the planning step.
 
 ## How it works
 
@@ -101,7 +105,7 @@ It picks the first one available, in this order, or you choose with `"tts"` in t
 | **Cartesia Sonic 3.6** | `CARTESIA_API_KEY` | exact word timings | about $0.25 per 1,000 words | #1 on the [Artificial Analysis TTS leaderboard](https://artificialanalysis.ai/text-to-speech/leaderboard) when this was written |
 | **ElevenLabs** | `ELEVENLABS_API_KEY` | exact word timings | about $0.30 to $0.60 per 1,000 words | Large voice library |
 | **OpenAI gpt-4o-mini-tts** | `OPENAI_API_KEY` | per sentence | cents per video | Tone and pace steerable with `"instructions"` |
-| **Kokoro** (local, free) | `pip install "page-walkthrough[local]"` | per sentence | free | Apache-2.0 weights, runs on CPU on macOS, Linux and Windows; one-time ~350 MB download |
+| **Kokoro** (local, free) | `pip install "page-walkthrough[local] @ git+https://github.com/amishah1998/page-walkthrough"` | per sentence | free | Apache-2.0 weights, runs on CPU on macOS, Linux and Windows; one-time ~350 MB download |
 | **macOS `say`** | nothing | per sentence | free | Zero setup on a Mac; clearly synthetic |
 
 "Per sentence" means each sentence is voiced on its own and measured, so captions change exactly on
@@ -113,10 +117,21 @@ sentence boundaries; words inside a sentence are spread by length.
 |---|---|---|
 | Everything | Python 3.10+ and ffmpeg | Pillow, websockets and pypdfium2 install with the package |
 | HTML pages | Chrome, Chromium or Edge | Found automatically; or set `CHROME=/path/to/browser` |
-| PDFs | nothing extra | Rendered with pdfium; sections found from the page's white space, so scanned PDFs work |
+| PDFs | nothing extra | Rendered with pdfium; sections come from the page's white space, not its text layer |
 | A voice | one of the options above | `page-walkthrough doctor` shows what it found |
 | Auto-planning | `anthropic` and `ANTHROPIC_API_KEY` | Not needed when an agent writes the shot list |
 
+## Limits
+
+- Tested on macOS only. Linux and Windows browser discovery and fonts are written but untested.
+- The Cartesia, ElevenLabs and OpenAI voices and the `plan` command have not been run end to end yet.
+  The local Kokoro voice has.
+- Section detection splits on white space, so a figure with tightly packed panels can come out as
+  one section. Frame part of it with a `rect`; the outline snaps to the content you meant.
+- Pages behind a login or that build slowly can capture half-loaded. Capture a saved copy or a PDF.
+- The narration is only as faithful as the shot list. Read `shots.json` or the preview sheet before
+  you share a video about numbers that matter.
+
 ## Licence
 
-MIT
+[MIT](LICENSE)
