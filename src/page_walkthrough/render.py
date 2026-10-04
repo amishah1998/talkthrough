@@ -43,7 +43,7 @@ def ink_mask(page):
 
 def _bands(proj, min_gap):
     """Runs of ink in a projection, split wherever at least min_gap empty cells separate them."""
-    out, start, gap = [], None, 0
+    out, start, gap, last = [], None, 0, 0
     for i, v in enumerate(proj):
         if v:
             if start is None:
@@ -59,44 +59,50 @@ def _bands(proj, min_gap):
     return out
 
 
-def _trim_cut_edges(ink, box, s):
-    """Drop a thin edge band whose content runs on past the rect: the rect was slicing through it.
+def _trim_cut_edges(ink, rect, tight, s):
+    """Drop a thin edge band that the rect slices through: it touches the rect's edge and runs on past it.
 
     Typical case: a box drawn around one panel of a figure also catches the left half of the shared caption
-    and a sliver of the next panel's border."""
-    x0, y0, x1, y1 = box
-    near = round(4 * s)
-    for _ in range(4):
-        cols, rows = ink.crop((x0, y0, x1, y1)).getprojection()
-        rb, cb = _bands(rows, round(2 * s)), _bands(cols, round(2 * s))
-        h, w = y1 - y0, x1 - x0
-        def inked(box):
-            return ink.crop(box).getbbox() is not None
+    and a sliver of the next panel's border. Only bands at the rect's own edges qualify, so the trim never
+    cascades through the lines of a paragraph."""
+    X0, Y0, X1, Y1 = rect
+    x0, y0, x1, y1 = tight
+    near, skip, touch, gap = round(6 * s), round(2 * s), round(1 * s), round(2 * s)
 
-        def row_cut(a, b, edge):
-            beyond = (x0, y1, x1, min(ink.height, y1 + near)) if edge == "bottom" else (x0, max(0, y0 - near), x1, y0)
-            return inked(beyond) or inked((max(0, x0 - near), y0 + a, x0, y0 + b)) or \
-                inked((x1, y0 + a, min(ink.width, x1 + near), y0 + b))
+    def inked(box):
+        x, y, xx, yy = max(0, box[0]), max(0, box[1]), min(ink.width, box[2]), min(ink.height, box[3])
+        return xx > x and yy > y and ink.crop((x, y, xx, yy)).getbbox() is not None
 
-        def col_cut(a, b, edge):
-            beyond = (x1, y0, min(ink.width, x1 + near), y1) if edge == "right" else (max(0, x0 - near), y0, x0, y1)
-            return inked(beyond) or inked((x0 + a, max(0, y0 - near), x0 + b, y0)) or \
-                inked((x0 + a, y1, x0 + b, min(ink.height, y1 + near)))
+    def runs_past_sides(box):
+        bb = ink.crop(box).getbbox()
+        if not bb:
+            return False
+        bx0, by0, bx1, by1 = box[0] + bb[0], box[1] + bb[1], box[0] + bb[2], box[1] + bb[3]
+        # Look a little way past the edge, not right at it: a glyph's overhang (the tail of a j, a serif)
+        # stops within a pixel or two, while content the rect actually cut keeps going.
+        return (bx0 <= X0 + touch and inked((X0 - near, by0, X0 - skip, by1))) or \
+            (bx1 >= X1 - touch and inked((X1 + skip, by0, X1 + near, by1))) or \
+            (by0 <= Y0 + touch and inked((bx0, Y0 - near, bx1, Y0 - skip))) or \
+            (by1 >= Y1 - touch and inked((bx0, Y1 + skip, bx1, Y1 + near)))
 
-        if len(rb) > 1 and rb[-1][1] - rb[-1][0] < 0.2 * h and row_cut(*rb[-1], "bottom"):
-            y1 = y0 + rb[-2][1]
-        elif len(rb) > 1 and rb[0][1] - rb[0][0] < 0.2 * h and row_cut(*rb[0], "top"):
-            y0 = y0 + rb[1][0]
-        elif len(cb) > 1 and cb[-1][1] - cb[-1][0] < 0.2 * w and col_cut(*cb[-1], "right"):
-            x1 = x0 + cb[-2][1]
-        elif len(cb) > 1 and cb[0][1] - cb[0][0] < 0.2 * w and col_cut(*cb[0], "left"):
-            x0 = x0 + cb[1][0]
-        else:
-            break
-        tight = ink.crop((x0, y0, x1, y1)).getbbox()
-        if tight:
-            x0, y0, x1, y1 = x0 + tight[0], y0 + tight[1], x0 + tight[2], y0 + tight[3]
-    return x0, y0, x1, y1
+    rows = [(y0 + a, y0 + b) for a, b in _bands(ink.crop((x0, y0, x1, y1)).getprojection()[1], gap)]
+    if len(rows) > 1:
+        a, b = rows[-1]
+        if b - a < 0.2 * (y1 - y0) and runs_past_sides((x0, a, x1, b)):
+            y1 = rows[-2][1]
+        a, b = rows[0]
+        if b - a < 0.2 * (y1 - y0) and runs_past_sides((x0, a, x1, b)):
+            y0 = rows[1][0]
+    cols = [(x0 + a, x0 + b) for a, b in _bands(ink.crop((x0, y0, x1, y1)).getprojection()[0], gap)]
+    if len(cols) > 1:
+        a, b = cols[-1]
+        if b - a < 0.2 * (x1 - x0) and runs_past_sides((a, y0, b, y1)):
+            x1 = cols[-2][1]
+        a, b = cols[0]
+        if b - a < 0.2 * (x1 - x0) and runs_past_sides((a, y0, b, y1)):
+            x0 = cols[1][0]
+    bb = ink.crop((x0, y0, x1, y1)).getbbox()
+    return (x0 + bb[0], y0 + bb[1], x0 + bb[2], y0 + bb[3]) if bb else tight
 
 
 def snap(rect, pad, ink, scale):
@@ -109,7 +115,22 @@ def snap(rect, pad, ink, scale):
     tight = ink.crop((x0, y0, x1, y1)).getbbox()
     if not tight:
         return rect
-    x0, y0, x1, y1 = _trim_cut_edges(ink, (x0 + tight[0], y0 + tight[1], x0 + tight[2], y0 + tight[3]), s)
+    x0, y0, x1, y1 = _trim_cut_edges(ink, (x0, y0, x1, y1), (x0 + tight[0], y0 + tight[1], x0 + tight[2], y0 + tight[3]), s)
+    # A glyph that overhangs its element box by a pixel belongs to the content, not to a neighbour;
+    # left outside, it made the pad collapse to one pixel and the outline sat on the first letter.
+    touch = max(1, round(s))
+    for _ in range(3):
+        grown = (x0, y0, x1, y1)
+        if x0 > 0 and ink.crop((x0 - touch, y0, x0, y1)).getbbox():
+            x0 -= touch
+        if x1 < ink.width and ink.crop((x1, y0, x1 + touch, y1)).getbbox():
+            x1 += touch
+        if y0 > 0 and ink.crop((x0, y0 - touch, x1, y0)).getbbox():
+            y0 -= touch
+        if y1 < ink.height and ink.crop((x0, y1, x1, y1 + touch)).getbbox():
+            y1 += touch
+        if (x0, y0, x1, y1) == grown:
+            break
     reach = round(pad * s)
     look = 2 * reach
     top = ink.crop((x0, max(0, y0 - look), x1, y0)).getbbox()
