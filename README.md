@@ -8,7 +8,7 @@ A camera moves over the real page one section at a time, a spotlight shows what 
 a voice explains it, and captions follow the voice. Nothing on screen is redrawn or restyled: every
 frame is a real crop of your page, so the diagram in the video is the diagram in the document.
 
-![The spotlight moves from the wrong answer to the right one in the Chain-of-Thought paper](docs/demo.gif)
+![The spotlight moves from the wrong answer to the right one in the Chain-of-Thought paper](https://raw.githubusercontent.com/amishah1998/talkthrough/main/docs/demo.gif)
 
 *The Chain-of-Thought Prompting paper ([Wei et al. 2022](https://arxiv.org/abs/2201.11903), CC BY 4.0).
 The full 58-second walkthrough, with sound and the free local voice:*

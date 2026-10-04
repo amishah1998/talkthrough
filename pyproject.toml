@@ -6,6 +6,14 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [{ name = "Karan Bansal" }]
+keywords = ["pdf", "html", "video", "walkthrough", "narration", "text-to-speech", "claude-code"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Topic :: Multimedia :: Video",
+  "Environment :: Console",
+]
 dependencies = [
   "pillow>=10",
   "websockets>=12",
@@ -22,6 +30,10 @@ talkthrough = "talkthrough.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/amishah1998/talkthrough"
+Issues = "https://github.com/amishah1998/talkthrough/issues"
+
+[tool.hatch.build.targets.sdist]
+exclude = ["docs", "tests", ".github"]
 
 [build-system]
 requires = ["hatchling"]
