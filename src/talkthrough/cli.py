@@ -30,7 +30,7 @@ def _need_planner():
         import anthropic  # noqa: F401
     except ImportError:
         sys.exit("planning needs the anthropic package: pip install "
-                 "'talkthrough[plan] @ git+https://github.com/amishah1998/talkthrough'")
+                 "'talkthrough[plan]'")
     if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
         sys.exit("planning needs ANTHROPIC_API_KEY. Without one, ask Claude Code for the video (the plugin plans "
                  "it for you), or run capture, write shots.json yourself, then preview and render.")
@@ -127,7 +127,7 @@ def cmd_doctor(a):
     if platform.system() == "Darwin" and shutil.which("say"):
         voices.append("say (macOS)")
     row("voice", bool(voices), ", ".join(voices) or "none: set CARTESIA_API_KEY, ELEVENLABS_API_KEY or OPENAI_API_KEY, "
-        "or pip install 'talkthrough[local] @ git+https://github.com/amishah1998/talkthrough'")
+        "or pip install 'talkthrough[local]'")
     try:
         import anthropic  # noqa: F401
         has_sdk = True
@@ -135,7 +135,7 @@ def cmd_doctor(a):
         has_sdk = False
     auto = has_sdk and bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
     row("(optional) auto-plan", auto, "ready" if auto else
-        "needs pip install 'talkthrough[plan] @ git+https://github.com/amishah1998/talkthrough' and ANTHROPIC_API_KEY; not needed when an agent writes shots.json")
+        "needs pip install 'talkthrough[plan]' and ANTHROPIC_API_KEY; not needed when an agent writes shots.json")
     sys.exit(0 if ok else 1)
 
 

@@ -16,12 +16,12 @@ what on the page matters, and writing what the voice says over each part.
 ## Setup
 
 Run `talkthrough doctor`. If the command is missing, run every command through
-`uvx --from "talkthrough[local] @ git+https://github.com/amishah1998/talkthrough" talkthrough ...`
+`uvx --from "talkthrough[local]" talkthrough ...`
 (the `[local]` part brings the free Kokoro voice; without it only macOS `say` is available), or install it
-with `pip install "talkthrough[local] @ git+https://github.com/amishah1998/talkthrough"`. It needs a Chromium browser
+with `pip install "talkthrough[local]"`. It needs a Chromium browser
 (Chrome, Chromium or Edge) and ffmpeg. For the voice it uses, in order: Cartesia if
 `CARTESIA_API_KEY` is set, ElevenLabs if `ELEVENLABS_API_KEY` is set, OpenAI if `OPENAI_API_KEY` is
-set, the free local Kokoro voice if installed (`pip install "talkthrough[local] @ git+https://github.com/amishah1998/talkthrough"`), then macOS
+set, the free local Kokoro voice if installed (`pip install "talkthrough[local]"`), then macOS
 `say`. If none is available, suggest the local voice.
 
 ## Workflow
@@ -77,7 +77,7 @@ Use a fresh work folder per video, e.g. `./walkthrough-work/<name>`.
      and `credit` set to `false` turn those parts off.
 
    If the user has no agent handy, `talkthrough plan DIR --seconds 90` asks Claude to write this
-   file (needs `pip install "talkthrough[plan] @ git+https://github.com/amishah1998/talkthrough"` and `ANTHROPIC_API_KEY`).
+   file (needs `pip install "talkthrough[plan]"` and `ANTHROPIC_API_KEY`).
 
 4. **Preview before rendering.** `talkthrough preview DIR` writes `DIR/preview.png`, one
    spotlighted frame per shot, and prints the expected length. Look at it. Each shot must frame what

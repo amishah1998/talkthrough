@@ -50,7 +50,7 @@ def pick_backend(job):
     if platform.system() == "Darwin" and shutil.which("say"):
         return "say"
     raise SystemExit("No voice available. Set CARTESIA_API_KEY, ELEVENLABS_API_KEY or OPENAI_API_KEY, "
-                     "or install the free local voice: pip install 'talkthrough[local] @ git+https://github.com/amishah1998/talkthrough'.")
+                     "or install the free local voice: pip install 'talkthrough[local]'.")
 
 
 def _opt(job, backend, key):
