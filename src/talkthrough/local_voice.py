@@ -11,8 +11,8 @@ _engine = None
 
 
 def cache_dir():
-    base = os.environ.get("PAGE_WALKTHROUGH_CACHE") or os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache"
-    d = Path(base) / "page-walkthrough" / "kokoro"
+    base = os.environ.get("TALKTHROUGH_CACHE") or os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache"
+    d = Path(base) / "talkthrough" / "kokoro"
     d.mkdir(parents=True, exist_ok=True)
     return d
 

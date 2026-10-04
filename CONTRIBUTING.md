@@ -5,11 +5,11 @@ Issues and pull requests are welcome.
 ## Set up
 
 ```bash
-git clone https://github.com/amishah1998/page-walkthrough
-cd page-walkthrough
+git clone https://github.com/amishah1998/talkthrough
+cd talkthrough
 python3 -m venv .venv && . .venv/bin/activate
 pip install -e ".[all]"
-page-walkthrough doctor
+talkthrough doctor
 ```
 
 ## Before you open a PR

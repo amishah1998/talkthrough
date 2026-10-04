@@ -1,5 +1,5 @@
 [project]
-name = "page-walkthrough"
+name = "talkthrough"
 version = "0.1.0"
 description = "Turn any HTML page or PDF into a narrated walkthrough video of itself"
 readme = "README.md"
@@ -18,10 +18,10 @@ local = ["kokoro-onnx>=0.4", "soundfile>=0.12"]
 all = ["anthropic>=0.60", "kokoro-onnx>=0.4", "soundfile>=0.12"]
 
 [project.scripts]
-page-walkthrough = "page_walkthrough.cli:main"
+talkthrough = "talkthrough.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/amishah1998/page-walkthrough"
+Homepage = "https://github.com/amishah1998/talkthrough"
 
 [build-system]
 requires = ["hatchling"]

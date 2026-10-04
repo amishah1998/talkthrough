@@ -306,11 +306,11 @@ def capture_pdf(path, out, scale, name=None):
 
 def _remote_pdf(url):
     """Download url to a temp file if it serves a PDF (arXiv's /pdf/ links have no .pdf suffix), else None."""
-    req = urllib.request.Request(url, headers={"User-Agent": "page-walkthrough"})
+    req = urllib.request.Request(url, headers={"User-Agent": "talkthrough"})
     with urllib.request.urlopen(req, timeout=60) as r:
         if "pdf" not in (r.headers.get("Content-Type") or "").lower() and not url.lower().split("?")[0].endswith(".pdf"):
             return None
-        fd, tmp = tempfile.mkstemp(suffix=".pdf", prefix="page-walkthrough-")
+        fd, tmp = tempfile.mkstemp(suffix=".pdf", prefix="talkthrough-")
         with os.fdopen(fd, "wb") as f:
             shutil.copyfileobj(r, f)
     return Path(tmp)

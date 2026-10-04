@@ -1,4 +1,4 @@
-"""page-walkthrough: turn an HTML page or a PDF into a narrated walkthrough video of itself."""
+"""talkthrough: turn an HTML page or a PDF into a narrated walkthrough video of itself."""
 import argparse
 import json
 import os
@@ -30,7 +30,7 @@ def _need_planner():
         import anthropic  # noqa: F401
     except ImportError:
         sys.exit("planning needs the anthropic package: pip install "
-                 "'page-walkthrough[plan] @ git+https://github.com/amishah1998/page-walkthrough'")
+                 "'talkthrough[plan] @ git+https://github.com/amishah1998/talkthrough'")
     if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
         sys.exit("planning needs ANTHROPIC_API_KEY. Without one, ask Claude Code for the video (the plugin plans "
                  "it for you), or run capture, write shots.json yourself, then preview and render.")
@@ -90,7 +90,7 @@ def cmd_make(a):
     from .capture import capture
     from .plan import plan
     from .render import preview, render
-    folder = Path(a.keep) if a.keep else Path(tempfile.mkdtemp(prefix="page-walkthrough-"))
+    folder = Path(a.keep) if a.keep else Path(tempfile.mkdtemp(prefix="talkthrough-"))
     capture(a.page, folder, a.width, a.scale)
     shots = plan(folder, seconds=a.seconds, model=a.model, extra=a.note or "")
     _job_path(folder).write_text(json.dumps({"format": a.format, "tts": a.tts, "shots": shots}, indent=1,
@@ -113,7 +113,7 @@ def cmd_doctor(a):
         ok &= good or name.startswith("(optional)")
         print(f"  {'ok ' if good else '-- '} {name}: {note}")
 
-    print(f"page-walkthrough {__version__} on {platform.system()}")
+    print(f"talkthrough {__version__} on {platform.system()}")
     try:
         row("browser", True, find_chrome())
     except SystemExit as e:
@@ -127,7 +127,7 @@ def cmd_doctor(a):
     if platform.system() == "Darwin" and shutil.which("say"):
         voices.append("say (macOS)")
     row("voice", bool(voices), ", ".join(voices) or "none: set CARTESIA_API_KEY, ELEVENLABS_API_KEY or OPENAI_API_KEY, "
-        "or pip install 'page-walkthrough[local] @ git+https://github.com/amishah1998/page-walkthrough'")
+        "or pip install 'talkthrough[local] @ git+https://github.com/amishah1998/talkthrough'")
     try:
         import anthropic  # noqa: F401
         has_sdk = True
@@ -135,12 +135,12 @@ def cmd_doctor(a):
         has_sdk = False
     auto = has_sdk and bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
     row("(optional) auto-plan", auto, "ready" if auto else
-        "needs pip install 'page-walkthrough[plan] @ git+https://github.com/amishah1998/page-walkthrough' and ANTHROPIC_API_KEY; not needed when an agent writes shots.json")
+        "needs pip install 'talkthrough[plan] @ git+https://github.com/amishah1998/talkthrough' and ANTHROPIC_API_KEY; not needed when an agent writes shots.json")
     sys.exit(0 if ok else 1)
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(prog="page-walkthrough", description=__doc__)
+    ap = argparse.ArgumentParser(prog="talkthrough", description=__doc__)
     ap.add_argument("--version", action="version", version=__version__)
     sub = ap.add_subparsers(dest="cmd", required=True)
 
