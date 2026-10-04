@@ -42,7 +42,7 @@ def load_job(d):
     try:
         job = json.loads((d / "shots.json").read_text())
     except FileNotFoundError:
-        sys.exit(f"no shots.json in {d}; write one, or run page-walkthrough plan {d}")
+        sys.exit(f"no shots.json in {d}; write one, or run talkthrough plan {d}")
     except json.JSONDecodeError as e:
         sys.exit(f"{d / 'shots.json'} is not valid JSON: {e}")
     if not job.get("shots"):
@@ -418,7 +418,7 @@ def preview(folder):
 INTRO_S = 2.2
 OUTRO_S = 3.2
 FADE_S = 0.45
-CREDIT = "made with page-walkthrough  ·  github.com/amishah1998/page-walkthrough"
+CREDIT = "made with talkthrough  ·  github.com/amishah1998/talkthrough"
 ENCODE = {
     "hq": ["-preset", "medium", "-crf", "22"],
     "share": ["-preset", "slow", "-crf", "27", "-tune", "stillimage"],

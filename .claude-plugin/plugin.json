@@ -1,8 +1,8 @@
 {
-  "name": "page-walkthrough",
+  "name": "talkthrough",
   "version": "0.1.0",
   "description": "Turn any HTML page or PDF into a narrated walkthrough video of itself: real captures, a spotlight camera, a voiceover written only from the page's words, synced captions.",
   "author": { "name": "Karan Bansal" },
-  "homepage": "https://github.com/amishah1998/page-walkthrough",
+  "homepage": "https://github.com/amishah1998/talkthrough",
   "license": "MIT"
 }
