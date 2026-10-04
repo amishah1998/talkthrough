@@ -44,7 +44,7 @@ jobs:
       - name: Bad input fails clearly
         run: |
           ! talkthrough capture missing.html --out x 2> err.txt && grep -q "no such file" err.txt
-          ! env -u ANTHROPIC_API_KEY talkthrough make tests/smoke/sample.html 2> err.txt && grep -q "ANTHROPIC_API_KEY" err.txt
+          ! env -u ANTHROPIC_API_KEY talkthrough make tests/smoke/sample.html 2> err.txt && grep -q "planning needs" err.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:

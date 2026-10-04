@@ -52,9 +52,10 @@ talkthrough capture report.pdf --out work/          # page image and a numbered 
 talkthrough preview work/ && talkthrough render work/ --out report.mp4 --open
 ```
 
-**Experimental:** `talkthrough make report.pdf` does all of it in one go, with Claude choosing the
-sections through the API. It needs `ANTHROPIC_API_KEY` and `pip install "talkthrough[all] @ git+https://github.com/amishah1998/talkthrough"`,
-and it has not been run end to end yet.
+The `plan` and `make` commands are untested as of this release; the capture, hand-written
+shots.json, preview and render path is verified. `talkthrough make report.pdf` does it all in one go,
+with Claude choosing the sections through the API, and needs `ANTHROPIC_API_KEY` plus
+`pip install "talkthrough[all] @ git+https://github.com/amishah1998/talkthrough"`.
 
 ## How it works
 
