@@ -1,0 +1,55 @@
+name: smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  render:
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: System packages
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-core
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/talkthrough
+          key: kokoro-v1.0
+      - name: Install
+        run: pip install ".[local]"
+      - name: Doctor
+        run: talkthrough doctor
+      - name: HTML page
+        run: |
+          talkthrough capture tests/smoke/sample.html --out work-html
+          python tests/smoke/make_shots.py work-html
+          talkthrough preview work-html
+          talkthrough render work-html --out html.mp4
+          python tests/smoke/check_video.py html.mp4
+      - name: PDF
+        run: |
+          google-chrome --headless --no-sandbox --print-to-pdf=sample.pdf "file://$PWD/tests/smoke/sample.html"
+          talkthrough capture sample.pdf --out work-pdf
+          python tests/smoke/make_shots.py work-pdf
+          talkthrough render work-pdf --out pdf.mp4 --share
+          python tests/smoke/check_video.py pdf.mp4
+      - name: Bad input fails clearly
+        run: |
+          ! talkthrough capture missing.html --out x 2> err.txt && grep -q "no such file" err.txt
+          ! env -u ANTHROPIC_API_KEY talkthrough make tests/smoke/sample.html 2> err.txt && grep -q "ANTHROPIC_API_KEY" err.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: videos-py${{ matrix.python }}
+          path: |
+            *.mp4
+            *.mp4.png
+            work-*/preview.png
