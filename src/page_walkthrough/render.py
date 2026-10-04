@@ -271,7 +271,7 @@ def preview(folder):
 INTRO_S = 2.2
 OUTRO_S = 3.2
 FADE_S = 0.45
-CREDIT = "made with page-walkthrough  ·  github.com/karanb192/page-walkthrough"
+CREDIT = "made with page-walkthrough  ·  github.com/amishah1998/page-walkthrough"
 ENCODE = {
     "hq": ["-preset", "medium", "-crf", "22"],
     "share": ["-preset", "slow", "-crf", "27", "-tune", "stillimage"],

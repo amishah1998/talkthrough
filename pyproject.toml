@@ -21,7 +21,7 @@ all = ["anthropic>=0.60", "kokoro-onnx>=0.4", "soundfile>=0.12"]
 page-walkthrough = "page_walkthrough.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/karanb192/page-walkthrough"
+Homepage = "https://github.com/amishah1998/page-walkthrough"
 
 [build-system]
 requires = ["hatchling"]

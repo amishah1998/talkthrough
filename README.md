@@ -16,7 +16,7 @@ the docs page you want to post as a 90-second clip.
 ## Quickstart
 
 ```bash
-pip install "git+https://github.com/karanb192/page-walkthrough"
+pip install "git+https://github.com/amishah1998/page-walkthrough"
 page-walkthrough doctor                      # checks browser, ffmpeg and a voice
 page-walkthrough make report.pdf --seconds 90
 ```
@@ -28,7 +28,7 @@ sheet, and renders `report-walkthrough.mp4`. It needs `ANTHROPIC_API_KEY` for th
 ### In Claude Code
 
 ```
-/plugin marketplace add karanb192/page-walkthrough
+/plugin marketplace add amishah1998/page-walkthrough
 /plugin install page-walkthrough@page-walkthrough
 ```
 

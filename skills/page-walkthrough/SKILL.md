@@ -16,8 +16,8 @@ what on the page matters, and writing what the voice says over each part.
 ## Setup
 
 Run `page-walkthrough doctor`. If the command is missing, use
-`uvx --from git+https://github.com/karanb192/page-walkthrough page-walkthrough doctor`, or install it
-with `pip install "git+https://github.com/karanb192/page-walkthrough"`. It needs a Chromium browser
+`uvx --from git+https://github.com/amishah1998/page-walkthrough page-walkthrough doctor`, or install it
+with `pip install "git+https://github.com/amishah1998/page-walkthrough"`. It needs a Chromium browser
 (Chrome, Chromium or Edge) and ffmpeg. For the voice it uses, in order: Cartesia if
 `CARTESIA_API_KEY` is set, ElevenLabs if `ELEVENLABS_API_KEY` is set, OpenAI if `OPENAI_API_KEY` is
 set, the free local Kokoro voice if installed (`pip install "page-walkthrough[local]"`), then macOS
