@@ -21,6 +21,16 @@ PAD = 24
 FONT_PATHS = ["/System/Library/Fonts/SFNS.ttf", "/System/Library/Fonts/Helvetica.ttc",
               "C:\\Windows\\Fonts\\segoeui.ttf", "C:\\Windows\\Fonts\\arial.ttf",
               "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/TTF/DejaVuSans.ttf"]
+# Fonts that carry Devanagari and Latin, so Hindi in a caption or title is not drawn as empty boxes.
+DEVANAGARI_FONT_PATHS = ["/System/Library/Fonts/Kohinoor.ttc", "/System/Library/Fonts/Supplemental/DevanagariMT.ttc",
+                         "C:\\Windows\\Fonts\\Nirmala.ttc", "C:\\Windows\\Fonts\\NirmalaUI.ttf",
+                         "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
+                         "/usr/share/fonts/noto/NotoSansDevanagari-Regular.ttf"]
+_font_paths = FONT_PATHS
+
+
+def has_devanagari(text):
+    return any("\u0900" <= ch <= "\u097f" for ch in text)
 
 
 # ---------- shot list -> camera timeline ----------
@@ -29,7 +39,19 @@ def load_job(d):
     d = Path(d)
     meta = json.loads((d / "page.json").read_text())
     boxes = {b["id"]: b for b in json.loads((d / "boxes.json").read_text())}
-    job = json.loads((d / "shots.json").read_text())
+    try:
+        job = json.loads((d / "shots.json").read_text())
+    except FileNotFoundError:
+        sys.exit(f"no shots.json in {d}; write one, or run page-walkthrough plan {d}")
+    except json.JSONDecodeError as e:
+        sys.exit(f"{d / 'shots.json'} is not valid JSON: {e}")
+    if not job.get("shots"):
+        sys.exit(f"{d / 'shots.json'} has no shots")
+    for i, shot in enumerate(job["shots"]):
+        if not shot.get("say", "").strip():
+            sys.exit(f"shot {i} in {d / 'shots.json'} has nothing to say")
+        if not (shot.get("rect") or shot.get("boxes") or shot.get("box")):
+            sys.exit(f"shot {i} in {d / 'shots.json'} needs boxes or a rect")
     return d, meta, boxes, job
 
 
@@ -231,7 +253,7 @@ def lerp_win(a, b, t):
 # ---------- captions ----------
 
 def font(size):
-    for p in FONT_PATHS:
+    for p in _font_paths:
         if os.path.exists(p):
             try:
                 f = ImageFont.truetype(p, size)
@@ -467,7 +489,16 @@ def end_card(last, W, H, link, credit):
 
 
 def render(folder, out=None, log=print, quality=None, speed=None):
+    global _font_paths
     d, meta, boxes, job = load_job(folder)
+    spoken = " ".join(sh["say"] for sh in job["shots"]) + " " + page_title(job, meta)
+    _font_paths = FONT_PATHS
+    if has_devanagari(spoken):
+        _font_paths = DEVANAGARI_FONT_PATHS + FONT_PATHS
+        from PIL import features
+        log("note: the narration has Devanagari. Captions use a Hindi font, but the voices are tuned for English "
+            "and Hinglish in Roman letters, so they may read it badly."
+            + ("" if features.check("raqm") else " For correctly joined Hindi letters, install libraqm."))
     if speed:
         job["speed"] = speed
     fmt, (W, H, band, view), plan = build_plan(d, meta, boxes, job, with_audio=True)

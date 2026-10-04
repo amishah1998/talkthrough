@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -265,7 +266,7 @@ def _ink_mask(img, bg):
     return diff.point(lambda v: 255 if v > 18 else 0)
 
 
-def capture_pdf(path, out, scale):
+def capture_pdf(path, out, scale, name=None):
     import pypdfium2 as pdfium
     pdf = pdfium.PdfDocument(str(path))
     sizes = [pdf[i].get_size() for i in range(len(pdf))]
@@ -297,18 +298,41 @@ def capture_pdf(path, out, scale):
             boxes.append({"tag": "region", "cls": f"page {i + 1}", "depth": depth, "text": bt[:140],
                           "rect": [round(x + bx0), round(y + by0), bx1 - bx0, by1 - by0]})
         y += ph + PDF_GAP
-    title = (pdf.get_metadata_dict().get("Title") or "").strip() or re.sub(r"[-_]+", " ", Path(path).stem)
+    title = (pdf.get_metadata_dict().get("Title") or "").strip() or re.sub(r"[-_]+", " ", name or Path(path).stem)
     meta = {"url": Path(path).resolve().as_uri(), "title": title, "width": width, "height": height,
             "scale": scale, "bg": "rgb(232, 232, 235)", "kind": "pdf", "pages": len(pdf)}
     return sheet, "\n\n".join(texts), meta, boxes
 
 
+def _remote_pdf(url):
+    """Download url to a temp file if it serves a PDF (arXiv's /pdf/ links have no .pdf suffix), else None."""
+    req = urllib.request.Request(url, headers={"User-Agent": "page-walkthrough"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        if "pdf" not in (r.headers.get("Content-Type") or "").lower() and not url.lower().split("?")[0].endswith(".pdf"):
+            return None
+        fd, tmp = tempfile.mkstemp(suffix=".pdf", prefix="page-walkthrough-")
+        with os.fdopen(fd, "wb") as f:
+            shutil.copyfileobj(r, f)
+    return Path(tmp)
+
+
 def capture(src, out, width=820, scale=2):
     out = Path(out)
-    if str(src).lower().endswith(".pdf") and not re.match(r"^https?:", str(src)):
+    src = str(src)
+    if not re.match(r"^(https?|file):", src) and not Path(src).exists():
+        sys.exit(f"no such file: {src}")
+    if src.startswith("file:") and not Path(urllib.request.url2pathname(src[5:].split("#")[0])).exists():
+        sys.exit(f"no such file: {src}")
+    remote_pdf = _remote_pdf(src) if re.match(r"^https?:", src) else None
+    if remote_pdf:
+        name = urllib.parse.unquote(src.split("?")[0].rstrip("/").rsplit("/", 1)[-1])
+        page, text, meta, boxes = capture_pdf(remote_pdf, out, scale, name=re.sub(r"\.pdf$", "", name, flags=re.I))
+        meta["url"] = src
+        remote_pdf.unlink()
+    elif src.lower().endswith(".pdf") and not src.startswith("file:"):
         page, text, meta, boxes = capture_pdf(src, out, scale)
     else:
-        url = src if re.match(r"^(https?|file):", str(src)) else Path(src).resolve().as_uri()
+        url = src if re.match(r"^(https?|file):", src) else Path(src).resolve().as_uri()
         page, text, meta, boxes = asyncio.run(_capture(url, width, scale))
     for i, b in enumerate(boxes):
         b["id"] = f"b{i}"

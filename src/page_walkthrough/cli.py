@@ -25,7 +25,19 @@ def cmd_capture(a):
           f"{len(boxes)} boxes -> {a.out}")
 
 
+def _need_planner():
+    try:
+        import anthropic  # noqa: F401
+    except ImportError:
+        sys.exit("planning needs the anthropic package: pip install "
+                 "'page-walkthrough[plan] @ git+https://github.com/amishah1998/page-walkthrough'")
+    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+        sys.exit("planning needs ANTHROPIC_API_KEY. Without one, ask Claude Code for the video (the plugin plans "
+                 "it for you), or run capture, write shots.json yourself, then preview and render.")
+
+
 def cmd_plan(a):
+    _need_planner()
     from .plan import plan
     shots = plan(a.dir, seconds=a.seconds, model=a.model, extra=a.note or "")
     job = {"format": a.format, "tts": a.tts, "shots": shots}
@@ -74,6 +86,7 @@ def cmd_render(a):
 
 
 def cmd_make(a):
+    _need_planner()
     from .capture import capture
     from .plan import plan
     from .render import preview, render
