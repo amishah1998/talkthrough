@@ -129,6 +129,9 @@ sentence boundaries; words inside a sentence are spread by length.
 - Section detection splits on white space, so a figure with tightly packed panels can come out as
   one section. Frame part of it with a `rect`; the outline snaps to the content you meant.
 - Pages behind a login or that build slowly can capture half-loaded. Capture a saved copy or a PDF.
+- Narration works best in English or Hinglish in Roman letters. Pages in any language capture fine,
+  and Hindi in a caption gets a Devanagari font, but the voices are tuned for English and correctly
+  joined Hindi letters need libraqm installed.
 - The narration is only as faithful as the shot list. Read `shots.json` or the preview sheet before
   you share a video about numbers that matter.
 
