@@ -1,11 +1,11 @@
 [project]
 name = "talkthrough"
-version = "0.1.1"
+version = "0.1.2"
 description = "Turn any HTML page or PDF into a narrated walkthrough video of itself"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-authors = [{ name = "Karan Bansal" }]
+authors = [{ name = "Ami Shah" }, { name = "Karan Bansal" }]
 keywords = ["pdf", "html", "video", "walkthrough", "narration", "text-to-speech", "claude-code"]
 classifiers = [
   "Programming Language :: Python :: 3",
